@@ -1,7 +1,7 @@
 import { SLACK_THREADS } from '../data/mockData.js'
 
-// this is the left panel — it shows the raw slack threads exactly as they happened
-// the idea is: digest on the right tells you what matters, threads on the left let you read the full context
+// the left panel — shows the raw slack threads exactly as they happened
+// this is the "source" — the digest on the right is what the tool pulls out of these
 
 export default function ThreadPanel() {
   return (
@@ -21,12 +21,11 @@ export default function ThreadPanel() {
         <p style={{ fontSize: '11px', color: '#2e3040', marginTop: '2px' }}>{SLACK_THREADS.length} active threads</p>
       </div>
 
-      {/* scrollable thread list */}
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {SLACK_THREADS.map((thread) => (
           <div key={thread.id} style={{ padding: '12px 16px', borderBottom: '1px solid #181b24' }}>
 
-            {/* channel name with its color dot */}
+            {/* channel name with a color dot */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
               <div style={{
                 width: '5px', height: '5px', borderRadius: '50%',
@@ -38,11 +37,11 @@ export default function ThreadPanel() {
               <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#2e3040' }}>{thread.messages.length}↩</span>
             </div>
 
-            {/* messages — truncated so they don't take over the panel */}
+            {/* each message in the thread */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
               {thread.messages.map(msg => (
                 <div key={msg.id} style={{ display: 'flex', gap: '8px' }}>
-                  {/* avatar: initials in a colored box */}
+                  {/* avatar box with their initials */}
                   <div style={{
                     width: '22px', height: '22px', borderRadius: '5px', flexShrink: 0,
                     background: `${msg.avatarColor}18`,
@@ -57,7 +56,7 @@ export default function ThreadPanel() {
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#9496a1' }}>{msg.author}</span>
                       <span style={{ fontSize: '9px', color: '#2e3040' }}>{msg.timestamp}</span>
                     </div>
-                    {/* cut off at 85 chars — this is a preview, not the full thread */}
+                    {/* cut off long messages — this is a preview panel, not a full reader */}
                     <p style={{ fontSize: '11px', color: '#3a3d4d', lineHeight: 1.45 }}>
                       {msg.text.length > 85 ? msg.text.slice(0, 85) + '…' : msg.text}
                     </p>
@@ -66,7 +65,7 @@ export default function ThreadPanel() {
               ))}
             </div>
 
-            {/* stale warning — appears if the thread has gone cold */}
+            {/* orange warning if the thread has been silent too long */}
             {thread.note && (
               <div style={{
                 marginTop: '8px', padding: '4px 8px',

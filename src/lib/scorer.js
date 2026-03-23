@@ -1,42 +1,40 @@
-// this is the brain of the whole thing
-// it takes a slack signal and a role + phase and spits out a number
-// higher number = more important for that person right now
+// this file figures out how important a message is for each person
+// think of it like a score on a test — higher score = more important to you right now
 
-// ─── role weights ─────────────────────────────────────────────────────────────
-// basically: how much does each role actually care about each type of signal?
-// 0.0 = barely relevant, 1.0 = this is exactly what they need to see
-// i set these based on what each job actually does day to day
+// ─── how much does each job care about each type of message ───────────────────
+// imagine you asked every person "on a scale of 0 to 1, how much do you care about this?"
+// these are their answers
 
 const ROLE_WEIGHTS = {
   'Electrical Engineer': {
-    blocker:          0.95, // if something is blocked, EE needs to know immediately
+    blocker:          0.95, // if something is broken, they need to know right away
     risk:             0.78,
-    decision:         0.82, // EEs get tagged in design decisions a lot
+    decision:         0.82, // people ask EEs to approve stuff all the time
     open_question:    0.68,
-    milestone_update: 0.60, // they care about schedule but it's not their main thing
-    dependency:       0.92, // really high — their work blocks other people constantly
+    milestone_update: 0.60, // schedule is important but not their main thing
+    dependency:       0.92, // other people are always waiting on their work
   },
   'Mechanical Engineer': {
     blocker:          0.82,
     risk:             0.78,
-    decision:         0.90, // MEs make a lot of physical design calls that ripple downstream
+    decision:         0.90, // when ME changes a part, everyone else has to adjust
     open_question:    0.62,
     milestone_update: 0.52,
     dependency:       0.70,
   },
   'Supply Chain': {
     blocker:          0.68,
-    risk:             0.92, // supplier risk is literally their whole job
+    risk:             0.92, // "the part is delayed" is basically their whole job to catch
     decision:         0.72,
-    open_question:    0.82, // unanswered questions can stall a PO
-    milestone_update: 0.78, // they need to know when dates shift so they can move orders
+    open_question:    0.82, // unanswered questions can hold up an order
+    milestone_update: 0.78, // if the date moves, they need to move the order too
     dependency:       0.60,
   },
   'Engineering Manager': {
-    blocker:          0.95, // EMs need to see everything that's stuck
+    blocker:          0.95, // they need to know everything that's stuck
     risk:             0.95,
     decision:         0.88,
-    open_question:    0.95, // open questions at this stage usually mean someone's waiting on someone
+    open_question:    0.95, // open questions usually mean someone is waiting on someone
     milestone_update: 0.90,
     dependency:       0.80,
   },
@@ -45,23 +43,22 @@ const ROLE_WEIGHTS = {
     risk:             0.88,
     decision:         0.68,
     open_question:    0.85,
-    milestone_update: 0.95, // PMs live and die by the schedule
+    milestone_update: 0.95, // PMs care most about whether the schedule is on track
     dependency:       0.58,
   },
 }
 
-// ─── phase weights ────────────────────────────────────────────────────────────
-// same signal, different phase = different urgency
-// early on (prototype), risk is fine — you're still figuring stuff out
-// later (PVT), every open item is a potential launch blocker
+// ─── how much does the project phase change things ────────────────────────────
+// early on (Prototype) = still figuring stuff out, it's okay if things are messy
+// late (PVT) = almost shipping, everything is urgent, no loose ends allowed
 
 const PHASE_WEIGHTS = {
   Prototype: {
     blocker:          1.2,
-    risk:             0.55, // risk is expected early, don't over-alarm
-    decision:         1.45, // decisions matter most here — still setting direction
+    risk:             0.55, // risk is normal this early — don't freak out about it
+    decision:         1.45, // decisions matter most here, you're still picking direction
     open_question:    1.30,
-    milestone_update: 0.45, // nobody's sweating the schedule in prototype
+    milestone_update: 0.45, // nobody is watching the clock yet
     dependency:       0.75,
   },
   EVT: {
@@ -70,29 +67,29 @@ const PHASE_WEIGHTS = {
     decision:         1.18,
     open_question:    1.10,
     milestone_update: 0.78,
-    dependency:       1.20, // dependencies really start mattering in EVT
+    dependency:       1.20, // teams start depending on each other more here
   },
   DVT: {
     blocker:          1.30,
-    risk:             1.22, // risk becomes a bigger deal in DVT
+    risk:             1.22, // risk starts really mattering now
     decision:         1.00,
     open_question:    1.05,
     milestone_update: 1.12,
     dependency:       1.10,
   },
   PVT: {
-    blocker:          1.50, // in PVT everything is urgent
+    blocker:          1.50, // everything is loud in PVT — you're almost done
     risk:             1.45,
     decision:         1.35,
-    open_question:    1.50, // if something is unanswered in PVT, that's a problem
+    open_question:    1.50, // if something is unanswered this late, that's a real problem
     milestone_update: 1.42,
     dependency:       1.25,
   },
 }
 
-// ─── what does each role actually own ────────────────────────────────────────
-// if a signal touches something the person owns, it scores way higher
-// like an EE doesn't need to see every chassis thread — only the ones that touch their board
+// ─── what does each person actually own ───────────────────────────────────────
+// if the message is about something YOU own, it matters way more to you
+// like if the PCB breaks, the EE cares more than supply chain does
 
 const ROLE_OWNERSHIP = {
   'Electrical Engineer':  ['PCB', 'Power Board', 'PCB / Firmware', 'Electrical'],
@@ -102,18 +99,17 @@ const ROLE_OWNERSHIP = {
   'Product Manager':      ['Program'],
 }
 
-// ─── recency: how fresh is this signal ────────────────────────────────────────
-// newer = more important, but hardware teams move slow so the decay is gentle
-// something from 24 hours ago is still very relevant
+// ─── how fresh is this message ────────────────────────────────────────────────
+// newer = more important, but it fades slowly because hardware teams don't move as fast as software
 
 function recencyScore(hoursOld) {
   return 1.0 / (1.0 + 0.035 * hoursOld)
 }
 
-// ─── does this signal touch something the user owns ───────────────────────────
-// if the signal is literally in your subsystem → big boost (1.85x)
-// if your team is downstream of it → medium boost (1.45x)
-// otherwise no boost
+// ─── does this message touch something the person owns ────────────────────────
+// if yes: big boost (1.85x) — this is literally their problem
+// if their team is downstream of it: medium boost (1.45x) — they'll be affected soon
+// if neither: no boost (1.0x)
 
 function dependencyImpact(signal, role) {
   const owned = ROLE_OWNERSHIP[role] ?? []
@@ -135,18 +131,18 @@ function dependencyImpact(signal, role) {
   return 1.0
 }
 
-// ─── cross-functional reach ───────────────────────────────────────────────────
-// the more teams are affected by a signal, the more a manager or PM needs to see it
-// each extra downstream team adds 18% to the score
+// ─── how many teams does this affect ─────────────────────────────────────────
+// a problem that hits 3 teams is more important to a manager than one that only hits 1 team
+// each extra team adds 18% to the score
 
 function crossFunctionalReach(signal) {
   const count = signal.downstreamTeams?.length ?? 0
   return 1.0 + 0.18 * count
 }
 
-// ─── the actual score formula ─────────────────────────────────────────────────
-// multiply all the factors together
-// role weight × phase weight × recency × urgency × ownership boost × reach
+// ─── the final score ──────────────────────────────────────────────────────────
+// multiply everything together to get one number
+// that number tells us how important this message is for this person right now
 
 export function scoreSignal(signal, role, phase) {
   const rw      = ROLE_WEIGHTS[role]?.[signal.type] ?? 0.5
@@ -160,7 +156,7 @@ export function scoreSignal(signal, role, phase) {
 
   return {
     score: Math.max(parseFloat(raw.toFixed(3)), 0),
-    // store each factor so we can show the breakdown in the UI
+    // save each piece so we can show the math in the UI
     breakdown: {
       roleWeight:  rw.toFixed(2),
       phaseWeight: pw.toFixed(2),
@@ -172,9 +168,9 @@ export function scoreSignal(signal, role, phase) {
   }
 }
 
-// ─── turn a score into a priority label ───────────────────────────────────────
-// these thresholds are tuned so that in DVT you see 1-2 criticals max
-// not everything is critical — that defeats the purpose
+// ─── turn the score into a word ───────────────────────────────────────────────
+// instead of showing people a raw number, we label it
+// these cutoffs are tuned so you see 1–2 criticals in DVT, not 5
 
 export function priorityFromScore(score) {
   if (score >= 1.80) return 'CRITICAL'

@@ -1,6 +1,6 @@
 import { ROLES, PHASES } from '../data/mockData.js'
 
-// one color per role — shows up as the little dot next to the role name
+// each role gets its own color so you can tell at a glance who you're viewing as
 const ROLE_COLORS = {
   'Electrical Engineer':  '#60a5fa',
   'Mechanical Engineer':  '#fb923c',
@@ -9,8 +9,12 @@ const ROLE_COLORS = {
   'Product Manager':      '#f472b6',
 }
 
+// the top bar with two controls:
+// 1. who are you? (role dropdown)
+// 2. where is the project? (phase buttons)
+// changing either one re-scores everything on the right instantly
+
 export default function Header({ role, setRole, phase, setPhase }) {
-  // grab the color for whoever is currently selected
   const rc = ROLE_COLORS[role] ?? '#60a5fa'
 
   return (
@@ -25,7 +29,7 @@ export default function Header({ role, setRole, phase, setPhase }) {
       flexShrink: 0,
     }}>
 
-      {/* logo + app name */}
+      {/* logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
           <rect width="26" height="26" rx="6" fill="url(#logo-grad)"/>
@@ -44,7 +48,7 @@ export default function Header({ role, setRole, phase, setPhase }) {
 
       <div style={{ width: '1px', height: '18px', background: '#1f2230' }} />
 
-      {/* role selector — changing this re-scores the whole digest */}
+      {/* pick your role — the little dot changes color to match */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '11px', color: '#50535e' }}>Viewing as</span>
         <div style={{
@@ -53,7 +57,6 @@ export default function Header({ role, setRole, phase, setPhase }) {
           borderRadius: '6px', padding: '5px 10px', cursor: 'pointer',
           position: 'relative',
         }}>
-          {/* colored dot that matches the role */}
           <div style={{
             width: '6px', height: '6px', borderRadius: '50%',
             background: rc, flexShrink: 0, boxShadow: `0 0 6px ${rc}80`,
@@ -73,7 +76,7 @@ export default function Header({ role, setRole, phase, setPhase }) {
               <option key={r.id} value={r.id} style={{ background: '#13151c' }}>{r.label}</option>
             ))}
           </select>
-          {/* custom dropdown arrow since we stripped the native one */}
+          {/* custom arrow since we hid the browser's default one */}
           <svg style={{ position: 'absolute', right: '8px', pointerEvents: 'none' }} width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M2.5 3.5L5 6.5L7.5 3.5" stroke="#50535e" strokeWidth="1.3" strokeLinecap="round"/>
           </svg>
@@ -82,7 +85,7 @@ export default function Header({ role, setRole, phase, setPhase }) {
 
       <div style={{ width: '1px', height: '18px', background: '#1f2230' }} />
 
-      {/* phase switcher — prototype → EVT → DVT → PVT */}
+      {/* project phase — like difficulty levels: Prototype is easy mode, PVT is hard mode */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '11px', color: '#50535e' }}>Phase</span>
         <div style={{
@@ -106,7 +109,6 @@ export default function Header({ role, setRole, phase, setPhase }) {
         </div>
       </div>
 
-      {/* today's date, just for context */}
       <div style={{ marginLeft: 'auto', fontSize: '11px', color: '#2e3040' }}>
         {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
       </div>

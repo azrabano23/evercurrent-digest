@@ -1,5 +1,4 @@
-// colors for each node type in the chain
-// keeps things visually consistent with the rest of the app
+// color for each type of node in the chain
 const STYLE = {
   blocker:       { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
   risk:          { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.18)'  },
@@ -9,9 +8,9 @@ const STYLE = {
   open_question: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.18)'  },
 }
 
-// this shows how a signal cascades through the program
-// e.g. EE blocker → firmware blocked → integration delayed → DVT exit at risk
-// it's the "so what" visualization
+// this shows the domino effect — how one problem causes another
+// like: broken power rail → firmware can't boot → sensor tests delayed → DVT slips
+// it's the answer to "ok but why should I actually care?"
 
 export default function ImpactChain({ chain }) {
   if (!chain?.length) return null
@@ -25,7 +24,7 @@ export default function ImpactChain({ chain }) {
         Impact Chain
       </p>
 
-      {/* nodes connected by arrows → */}
+      {/* boxes connected by arrows */}
       <div style={{ display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: '3px' }}>
         {chain.map((node, i) => {
           const s = STYLE[node.type] ?? STYLE.dependency
@@ -39,12 +38,12 @@ export default function ImpactChain({ chain }) {
                 }}>
                   {node.label}
                 </div>
-                {/* who owns this step */}
+                {/* who's responsible for this step */}
                 {node.owner && (
                   <span style={{ fontSize: '9px', color: '#50535e', paddingLeft: '2px' }}>{node.owner}</span>
                 )}
               </div>
-              {/* arrow between nodes — don't show one after the last node */}
+              {/* don't put an arrow after the last box */}
               {i < chain.length - 1 && (
                 <span style={{ fontSize: '14px', color: '#262a38', marginBottom: '12px', flexShrink: 0 }}>→</span>
               )}

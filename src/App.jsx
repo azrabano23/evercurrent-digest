@@ -5,25 +5,24 @@ import DigestPanel from './components/DigestPanel.jsx'
 import { generateDigest } from './lib/generator.js'
 
 export default function App() {
-  // role and phase are the two things the user controls from the header
-  // changing either one re-scores everything
+  // these two things control everything — who's reading and where the project is
   const [role,   setRole]   = useState('Electrical Engineer')
   const [phase,  setPhase]  = useState('DVT')
   const [digest, setDigest] = useState([])
 
-  // whenever role or phase changes, run the scoring engine again
-  // this is what makes the digest personalized in real time
+  // any time role or phase changes, re-run the scoring and update the digest
+  // this is what makes the right panel feel alive
   useEffect(() => {
     const items = generateDigest(role, phase)
     setDigest(items)
   }, [role, phase])
 
   return (
-    // full height, no scroll on the outer shell — each panel handles its own scroll
+    // full screen, no scroll on the outside — each panel scrolls on its own
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <Header role={role} setRole={setRole} phase={phase} setPhase={setPhase} />
 
-      {/* two panels side by side: raw slack threads on the left, ranked digest on the right */}
+      {/* left = raw slack threads, right = your personalized digest */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <ThreadPanel />
         <DigestPanel digest={digest} role={role} phase={phase} />
