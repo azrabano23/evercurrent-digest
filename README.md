@@ -208,6 +208,32 @@ In production, the signal extraction layer (currently hand-written mock data) wo
 
 ---
 
+## Common Questions
+
+**"How are the weights chosen?"**
+
+Right now they're explicit heuristics — domain-informed defaults that encode what each role structurally cares about. I chose this approach on purpose because heuristics are interpretable and let you validate product behavior quickly before you have real usage data. You can look at the table and immediately sanity-check whether supply chain should weight risk higher than an EE. You can't do that with a learned model.
+
+In production, I'd keep the heuristics as initialization, then refine using behavioral feedback: which items get clicked, dismissed, or saved, and explicit relevance ratings users can give. That turns it into an online learning problem where the weights drift toward what actually matters to each person. But you don't start there — you'd have no signal to learn from.
+
+**"How reliable is the signal extraction?"**
+
+The prototype uses hand-written signals, so extraction is perfect by construction. In production with an LLM doing the classification, the key is keeping failure modes graceful. I'd constrain the output to a strict JSON schema, require a confidence score alongside each classification, and degrade on uncertainty rather than overclaim. A low-confidence signal can still appear in the digest — but ranked lower and labeled clearly. Users can correct it, and corrections become training signal.
+
+"I'd rather degrade gracefully than overstate certainty" is the design principle. An LLM that confidently misclassifies a thread is worse than one that says "I'm not sure, here it is at LOW priority."
+
+**"What makes this more than summarization?"**
+
+Summarization tells you what happened. This system tries to tell you what matters to *you* right now, based on your role, your ownership of specific subsystems, who's downstream of you, and where the project is. The same thread produces different output for different people — different ranking, different explanation, different priority label. That's not summarization, that's relevance scoring with personalized framing.
+
+The cleanest way to say it: summarization reduces content, this system routes it.
+
+**"Why a web UI instead of a Slack-native experience?"**
+
+The source is Slack, so the natural delivery surface is Slack — and in production that's exactly where I'd put it: a daily DM at 8am and a `/digest` slash command for on-demand. I used a web UI for the prototype because it makes the ranking logic and the explanation layer easy to inspect. You can click a card, see why it ranked where it did, open the score breakdown, and compare how the same signal looks for different roles. That's hard to do inside a Slack message. The underlying scoring service is the same either way — the delivery layer is just a skin on top.
+
+---
+
 ## Running Locally
 
 ```bash
