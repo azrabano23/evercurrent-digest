@@ -68,7 +68,7 @@ export default function DigestCard({ item }) {
 
           {/* tags row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginTop: '10px', flexWrap: 'wrap' }}>
-            {/* signal type badge */}
+            {/* signal type badge — label + plain english sublabel */}
             <span style={{
               fontSize: '10px', fontWeight: 600, color: meta.color,
               background: `${meta.color}10`,
@@ -77,6 +77,11 @@ export default function DigestCard({ item }) {
               letterSpacing: '0.1px',
             }}>
               {meta.label}
+              {meta.sublabel && (
+                <span style={{ fontWeight: 400, color: meta.color, opacity: 0.7, marginLeft: '4px' }}>
+                  · {meta.sublabel}
+                </span>
+              )}
             </span>
 
             <Dot />

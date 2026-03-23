@@ -112,6 +112,7 @@ export default function Header({ role, setRole, phase, setPhase }) {
               <button
                 key={p.id}
                 onClick={() => setPhase(p.id)}
+                title={p.sublabel}
                 style={{
                   fontSize: '11px',
                   fontWeight: active ? 600 : 400,
@@ -124,9 +125,19 @@ export default function Header({ role, setRole, phase, setPhase }) {
                   boxShadow: active ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
                   border: active ? '1px solid #2a2e40' : '1px solid transparent',
                   transition: 'all 0.14s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1px',
+                  lineHeight: 1.2,
                 }}
               >
-                {p.label}
+                <span>{p.label}</span>
+                {active && (
+                  <span style={{ fontSize: '8px', color: '#4e5264', fontWeight: 400, letterSpacing: '0.1px' }}>
+                    {p.sublabel}
+                  </span>
+                )}
               </button>
             )
           })}

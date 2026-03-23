@@ -88,6 +88,39 @@ A daily digest that:
 
 ---
 
+## The Scenario (What the Mock Data Is Actually About)
+
+The prototype is built around a real-feeling scenario: a robotics hardware team in DVT. Here's what's happening in plain English.
+
+**The team** — five people working on a robot:
+- **Alex Chen** (Electrical Engineer) — owns the circuit board
+- **Raj Patel** (Mechanical Engineer) — owns the physical chassis
+- **Sarah Kim + James Wu** (Supply Chain) — manage parts orders
+- **Priya Sharma** (Firmware Engineer) — writing the software that runs on the board
+- **Chris Okafor** (Engineering Manager) — responsible for the overall program
+- **Diana Park** (Product Manager) — owns the timeline and leadership updates
+
+**What's going wrong this week:**
+
+**1. The circuit board has a dead power rail** (`#evb-bring-up`)
+One section of the board is reading 0 volts when it should be 3.3 volts. Something is wired wrong — probably a tiny resistor that was accidentally left off. Alex thinks he knows which one (R112) but hasn't confirmed or fixed it yet. Priya's firmware team can't test the sensors at all until that power comes back on. The thread has been open 18 hours with no update.
+
+**2. A key part won't arrive in time** (`#supply-chain`)
+A capacitor (C47 — a tiny electrical component that stabilizes power) was ordered from Murata. The supplier just pushed the delivery from 8 weeks to 14 weeks. It won't arrive before the DVT build. There's an equivalent part from TDK that could work, but it's not on the approved list yet — Alex has to sign off on it. He hasn't responded in 12 hours. If he doesn't approve it this week, supply chain can't place the order.
+
+**3. The chassis cracked during a shake test** (`#dvt-testing`)
+They tested how the robot handles vibration (like being dropped or running on rough terrain). It failed — the chassis cracked right where the circuit board screws in. Raj needs to redesign that area, but if he changes the screw pattern, it affects where Alex's board mounts. They need to sync before either one finalizes anything. That sync hasn't happened.
+
+**4. Leadership doesn't know any of this** (`#program`)
+The PM (Diana) needs to send a risk update to leadership by Friday. She asked the EM (Chris) to send her the list of open risks. He said he would. He never did. The thread dropped 22 hours ago. At least three big program risks have no leadership visibility.
+
+**5. The April 15 deadline is in danger** (`#firmware-integration`)
+Priya's team published an update: the CAN bus and motor controller are working. But everything sensor-related is blocked on the dead power rail. She needs the rail fixed today — then 2 more days to finish sensor bring-up — then the integration test window. If the rail slips even one day, April 15 is no longer realistic.
+
+**The thread running through everything:** the dead power rail (thread 2) is the single most important thing in the program. Fixing it unblocks firmware, which is the gate to DVT exit, which is what the PM is trying to report on. That's the kind of hidden critical path that gets lost in Slack — and exactly what this tool is designed to surface.
+
+---
+
 ## How It Works — Step by Step
 
 ### Step 1 — Start with the raw Slack threads

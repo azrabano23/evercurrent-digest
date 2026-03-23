@@ -4,6 +4,7 @@ export const SLACK_THREADS = [
   {
     id: 'thread-001',
     channel: '#supply-chain',
+    channelDescription: 'A part we ordered won\'t arrive in time — need an approved swap fast',
     channelColor: '#f0a500',
     messages: [
       {
@@ -38,6 +39,7 @@ export const SLACK_THREADS = [
   {
     id: 'thread-002',
     channel: '#evb-bring-up',
+    channelDescription: 'Power is dead on the circuit board — firmware team can\'t do anything until it\'s fixed',
     channelColor: '#58a6ff',
     note: '⚠ Thread open 18 hours — no update posted',
     messages: [
@@ -73,6 +75,7 @@ export const SLACK_THREADS = [
   {
     id: 'thread-003',
     channel: '#dvt-testing',
+    channelDescription: 'The robot chassis cracked during a shake test — needs a redesign before next build',
     channelColor: '#3fb950',
     note: '⚠ ME/EE sync not yet scheduled',
     messages: [
@@ -108,6 +111,7 @@ export const SLACK_THREADS = [
   {
     id: 'thread-004',
     channel: '#program',
+    channelDescription: 'Leadership needs a risk update by Friday — EM promised to send it and hasn\'t',
     channelColor: '#bc8cff',
     note: '⚠ Thread dropped — PM still waiting on EM follow-up',
     messages: [
@@ -134,6 +138,7 @@ export const SLACK_THREADS = [
   {
     id: 'thread-005',
     channel: '#firmware-integration',
+    channelDescription: 'Most software is working but sensors are blocked — April 15 deadline is at risk',
     channelColor: '#f78166',
     messages: [
       {
@@ -384,19 +389,19 @@ export const ROLES = [
 // ─── Phases ──────────────────────────────────────────────────────────────────
 
 export const PHASES = [
-  { id: 'Prototype', label: 'Prototype' },
-  { id: 'EVT', label: 'EVT' },
-  { id: 'DVT', label: 'DVT' },
-  { id: 'PVT', label: 'PVT / Launch Prep' },
+  { id: 'Prototype', label: 'Prototype', sublabel: 'first rough build' },
+  { id: 'EVT', label: 'EVT', sublabel: 'does it work?' },
+  { id: 'DVT', label: 'DVT', sublabel: 'does it meet spec?' },
+  { id: 'PVT', label: 'PVT', sublabel: 'ready to manufacture?' },
 ]
 
 // ─── Signal type metadata ─────────────────────────────────────────────────────
 
 export const SIGNAL_META = {
-  blocker:          { label: 'Blocker',         color: '#f85149' },
-  risk:             { label: 'Risk',             color: '#d29922' },
-  decision:         { label: 'Decision',         color: '#bc8cff' },
-  open_question:    { label: 'Open Question',    color: '#58a6ff' },
-  milestone_update: { label: 'Milestone',        color: '#f0883e' },
-  dependency:       { label: 'Dependency',       color: '#58a6ff' },
+  blocker:          { label: 'Blocker',       sublabel: 'work is stopped',               color: '#f85149' },
+  risk:             { label: 'Risk',          sublabel: 'could go wrong',                color: '#d29922' },
+  decision:         { label: 'Decision',      sublabel: 'choice needs to be made',       color: '#bc8cff' },
+  open_question:    { label: 'Open Question', sublabel: 'asked, not answered',           color: '#58a6ff' },
+  milestone_update: { label: 'Milestone',     sublabel: 'deadline changed',              color: '#f0883e' },
+  dependency:       { label: 'Dependency',    sublabel: 'one team waiting on another',   color: '#58a6ff' },
 }

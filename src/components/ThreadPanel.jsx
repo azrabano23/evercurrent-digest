@@ -55,22 +55,30 @@ function ThreadItem({ thread, isLast }) {
       onMouseEnter={e => e.currentTarget.style.background = '#141720'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
-      {/* channel name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-        <div style={{
-          width: '6px', height: '6px', borderRadius: '50%',
-          background: thread.channelColor,
-          boxShadow: `0 0 6px ${thread.channelColor}80`,
-        }} />
-        <span style={{
-          fontSize: '10px', fontWeight: 700, color: '#9499a8',
-          fontFamily: 'ui-monospace, monospace', letterSpacing: '0.3px',
-        }}>
-          {thread.channel}
-        </span>
-        <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#2a2e40' }}>
-          {thread.messages.length} msg
-        </span>
+      {/* channel name + plain english description of what's happening */}
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+          <div style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            background: thread.channelColor,
+            boxShadow: `0 0 6px ${thread.channelColor}80`,
+            flexShrink: 0,
+          }} />
+          <span style={{
+            fontSize: '10px', fontWeight: 700, color: '#9499a8',
+            fontFamily: 'ui-monospace, monospace', letterSpacing: '0.3px',
+          }}>
+            {thread.channel}
+          </span>
+          <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#2a2e40' }}>
+            {thread.messages.length} msg
+          </span>
+        </div>
+        {thread.channelDescription && (
+          <p style={{ fontSize: '10px', color: '#4e5264', lineHeight: 1.45, paddingLeft: '12px' }}>
+            {thread.channelDescription}
+          </p>
+        )}
       </div>
 
       {/* messages */}

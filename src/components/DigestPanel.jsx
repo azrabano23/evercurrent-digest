@@ -24,6 +24,9 @@ const ROLE_COLORS = {
   'Product Manager':      '#f472b6',
 }
 
+// one-line plain english summary of what's happening in each phase
+const SCENARIO_CONTEXT = `A robotics hardware team is in DVT — they're testing whether the design actually holds up. Right now: the circuit board has a dead power rail, a key part won't arrive in time, the chassis cracked during vibration testing, and the April 15 deadline is at risk. Switch roles to see who needs to know what.`
+
 // the right panel — personalized digest, ranked by what matters to you right now
 export default function DigestPanel({ digest, role, phase }) {
   const rc      = ROLE_COLORS[role] ?? '#60a5fa'
@@ -93,6 +96,23 @@ export default function DigestPanel({ digest, role, phase }) {
           borderLeft: '2px solid #1c2030',
         }}>
           {note}
+        </p>
+      </div>
+
+      {/* what's happening in this project — plain english context */}
+      <div style={{
+        margin: '16px 24px 0',
+        padding: '11px 14px',
+        background: '#0f1117',
+        border: '1px solid #1c2030',
+        borderRadius: '8px',
+        flexShrink: 0,
+      }}>
+        <p style={{ fontSize: '10px', fontWeight: 700, color: '#4e5264', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '5px' }}>
+          What's happening in this project
+        </p>
+        <p style={{ fontSize: '11px', color: '#4e5264', lineHeight: 1.6 }}>
+          {SCENARIO_CONTEXT}
         </p>
       </div>
 
