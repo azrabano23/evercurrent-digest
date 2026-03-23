@@ -1,28 +1,38 @@
 # EverCurrent Digest
 
-A personalized daily digest tool for hardware engineering teams. Built as a take-home for EverCurrent.
+A personalized daily digest tool for hardware engineering teams. Built as a response to the EverCurrent take-home.
+
+---
+
+## The One-Line Version
+
+Same Slack threads. Completely different digest depending on who you are and where the project is.
 
 ---
 
 ## The Problem
 
-Slack works. But when you have 5 different jobs on one team — mechanical engineer, electrical engineer, supply chain, engineering manager, product manager — everyone is reading the same threads and trying to figure out what matters to *them*.
+Slack works great for real-time conversation. It's terrible as a source of truth.
 
-A firmware blocker is critical to the EE and invisible to supply chain. A supplier lead time slip is urgent to supply chain and background noise to the ME. And none of that is static — what matters in DVT is different from what mattered in Prototype.
+On a hardware team — mechanical engineers, electrical engineers, supply chain, engineering managers, product managers — everyone is reading the same channels but needs completely different information. A firmware blocker is the most urgent thing in the program for the EE and basically invisible to supply chain. A supplier lead time slip is supply chain's whole world and background noise for an ME.
 
-The result: important things get buried, people miss what they needed to see, and the team gets out of sync.
+And none of that is static. What matters in DVT is completely different from what mattered in Prototype. The same signal that's a "monitor and note" in EVT is a potential launch blocker in PVT.
 
----
-
-## What This Does
-
-It reads Slack threads, figures out what matters most for each person, and shows them a ranked list — personalized to their role and the current project phase.
-
-Think of it like a news feed that knows you're an electrical engineer in DVT, not a product manager in Prototype. Same threads, completely different digest.
+The result: important things get buried in threads, roles get out of sync, and the team loses execution velocity — not because people aren't working, but because they're working off incomplete information.
 
 ---
 
-## Architecture
+## What This Builds
+
+A daily digest that:
+1. Reads Slack threads and pulls out what actually matters
+2. Scores each signal for your specific role and project phase
+3. Shows you a ranked list — with a plain-language explanation of why each item matters *to you*
+4. Re-ranks everything in real time as the project phase changes
+
+---
+
+## Architecture & Data Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -60,52 +70,53 @@ Think of it like a news feed that knows you're an electrical engineer in DVT, no
   └─────────────┘            │   × ownership_boost    │
   ┌─────────────┐            │   × cf_reach           │
   │ Phase       │ ─────────▶ │                        │
-  │ (where proj │            │  → sort by score       │
-  │  is now)    │            │  → top 5               │
+  │ (where the  │            │  → sort descending     │
+  │  project is)│            │  → top 5               │
   └─────────────┘            │  → attach role-        │
                              │    specific explanation │
                              └───────────────────────┘
 
   ROLE WEIGHTS (0–1)          PHASE MULTIPLIERS (0.5–1.5)
   ─────────────────           ────────────────────────────
-  EE    → blockers,           Prototype → decisions high,
-          dependencies               risk low
-  PM    → milestones,         PVT      → everything high,
-          risk                       no tolerance for
-  SC    → risk,                      open items
-          open questions
-  EM    → everything high
+  EE   → blockers,            Prototype → decisions high,
+         dependencies                risk suppressed
+  PM   → milestones, risk     PVT      → everything high,
+  SC   → risk,                         no open items allowed
+         open questions
+  EM   → everything high
 ```
 
 ---
 
-## How It Works
+## How It Works — Step by Step
 
-### Step 1 — Read the raw Slack threads
-The left panel shows 5 real threads from a hardware team in DVT. Things like a power rail that won't come up, a supplier pushing lead times, a chassis that cracked under vibration testing.
+### Step 1 — Start with the raw Slack threads
 
-These are unfiltered. No ranking. No signal extraction. Just the raw conversation.
+The left panel shows 5 real threads from a hardware team in DVT: a power rail that won't come up, a supplier pushing lead times by 6 weeks, a chassis that cracked during vibration testing, a PM waiting on an EM for a risk register, and a firmware team blocked on sensor bring-up.
 
-### Step 2 — Pull out what matters from each thread
-Each thread gets turned into a typed signal:
+No filtering. No ranking. Just what people actually said.
 
-| Type | What it means |
+### Step 2 — Extract typed signals from each thread
+
+Each thread becomes a structured signal with a type:
+
+| Type | Plain English |
 |------|---------------|
-| Blocker | someone can't move forward |
-| Risk | nothing is stuck yet, but something could go wrong |
-| Decision | a choice needs to be made — delay has a cost |
-| Open Question | something was asked and nobody answered |
-| Milestone Update | a deadline changed |
-| Dependency | one team is waiting on another team's output |
+| **Blocker** | someone can't move forward right now |
+| **Risk** | nothing's stuck yet, but something could go wrong |
+| **Decision** | a choice needs to be made — waiting has a cost |
+| **Open Question** | something was asked and nobody answered |
+| **Milestone Update** | a deadline changed |
+| **Dependency** | one team's work is gated on another team |
 
-Each signal also gets tagged with who owns it, which subsystem it's in, which teams are downstream, and how old it is.
+Each signal also gets tagged with: who owns it, which subsystem it's in, which teams are downstream of it, how old it is, and how time-sensitive it is.
 
 ### Step 3 — Score the signal for the person reading it
 
-Every signal gets a score. Higher score = more important to read right now.
+Every signal gets a number. Higher = more important to you right now.
 
 ```
-score = role weight × phase weight × recency × urgency × ownership boost × reach
+score = role_weight × phase_weight × recency × urgency × ownership_boost × cf_reach
 ```
 
 **Role weight** — how much does this role actually care about this signal type?
@@ -117,9 +128,9 @@ score = role weight × phase weight × recency × urgency × ownership boost × 
 | Milestone | 0.60 | 0.52 | 0.78 | 0.90 | 0.95 |
 | Dependency | 0.92 | 0.70 | 0.60 | 0.80 | 0.58 |
 
-Supply chain cares most about risk and milestones. EEs care most about blockers and dependencies. PMs care most about schedule. These aren't guesses — they're what each job actually does.
+Not guesses. These encode what each job actually does all day.
 
-**Phase weight** — the same signal is more or less urgent depending on where the project is.
+**Phase weight** — same signal, totally different urgency depending on where the project is.
 
 | Signal | Prototype | EVT | DVT | PVT |
 |--------|-----------|-----|-----|-----|
@@ -128,83 +139,105 @@ Supply chain cares most about risk and milestones. EEs care most about blockers 
 | Open Question | 1.30 | 1.10 | 1.05 | 1.50 |
 | Milestone | 0.45 | 0.78 | 1.12 | 1.42 |
 
-In Prototype, risk is expected. Nobody panics. In PVT, risk is a potential launch blocker. The same supplier delay that was a MEDIUM in EVT is a CRITICAL in PVT — without touching a single line of the signal data.
+In Prototype, risk is normal. In PVT, risk is a potential launch blocker. Same supplier delay, completely different score — without changing a single line of signal data.
 
-**Recency** — newer signals score higher. Uses a slow exponential decay (`1 / (1 + 0.035t)`) because hardware teams operate on day-scale cycles, not hour-scale.
+**Recency** — newer = more important. Decay is slow (`1 / (1 + 0.035t)`) because hardware teams move on day-scale cycles, not hour-scale.
 
-**Urgency** — some signals get manually flagged as time-sensitive (e.g. "if EE doesn't approve the alternate part in 2 days, the DVT PO can't be placed").
+**Urgency** — signals can be flagged time-sensitive. E.g. "EE needs to approve this alternate part within 2 days or the DVT PO can't be placed."
 
-**Ownership boost** — if the signal is about something you directly own, score ×1.85. If your team is downstream of it, score ×1.45. An EE doesn't need a supply chain thread ranked the same as a blocker in their own board.
+**Ownership boost** — if the signal is about something you directly own: ×1.85. If your team is downstream of it: ×1.45. An EE shouldn't rank a supply chain thread the same as a blocker on their own board.
 
-**Cross-functional reach** — each additional downstream team adds 18% to the score. A problem affecting firmware + systems + program is more important to a manager than one contained in a single discipline.
+**Cross-functional reach** — every additional downstream team adds 18% to the score. A problem that hits firmware + systems + program matters more to a manager than one contained within a single discipline.
 
-### Step 4 — Rank and show the top 5
+### Step 4 — Rank, group, show
 
-Sort by score, take the top 5, group by CRITICAL / HIGH / MEDIUM / LOW.
+Sort by score. Take the top 5. Group by CRITICAL / HIGH / MEDIUM / LOW. The thresholds are tuned so you see 1–2 criticals in DVT max. If everything is critical, the word means nothing.
 
-The cutoffs are tuned so you see 1–2 criticals in DVT at most. If everything is critical, nothing is.
+### Step 5 — Tell each person why it matters to *them*
 
-### Step 5 — Explain it in terms that are actually useful
+Same signal, totally different explanation per role. The U7 power rail blocker:
 
-Each signal has a different explanation written for each role. The same U7 power rail blocker looks like this:
+- **EE:** "You're the assigned owner. R112 is the suspected culprit. Firmware is blocked — resolution needed before EOD. No update in 18 hours."
+- **PM:** "If this isn't fixed today, DVT exit on April 15 slips 3–5 days. Most urgent item in the program."
+- **Supply Chain:** "No direct impact. If a hardware fix needs new parts, watch for new BOM entries."
 
-**To the EE:** "You are the assigned owner. R112 is the suspected culprit. Firmware is blocked — resolution needed before EOD. No update posted for 18 hours."
-
-**To the PM:** "If this isn't fixed today, DVT exit on April 15 slips 3–5 days. This is the single most urgent item in the program."
-
-**To supply chain:** "No direct impact. If a hardware fix requires component changes, monitor for new BOM entries."
-
-Same signal. Different framing. Each person gets exactly what they need to act.
+Same signal. Three different framings. Each person gets exactly what they need to act.
 
 ---
 
-## What Adapts As the Phase Changes
+## What Changes When You Switch Phases
 
-Switch the phase in the header — the entire digest re-ranks in real time.
+Hit the phase buttons in the header. Watch the digest re-rank in real time.
 
-- **Prototype** → decisions and open questions bubble up, supply chain noise is suppressed
-- **EVT** → blockers and dependencies get amplified
-- **DVT** → risk and supply chain urgency are elevated, spec changes are flagged
-- **PVT** → everything tightens, any open question becomes critical
+- **Prototype** → decisions and open questions rise. Risk is suppressed. Nobody's sweating the schedule yet.
+- **EVT** → blockers and dependencies amplify. Test failures show up first.
+- **DVT** → supplier risk and spec changes become high priority. Integration milestones matter.
+- **PVT** → everything tightens. Any open question is a potential launch blocker.
+
+This is the core insight: the *same* signal means different things at different phases. The tool encodes that automatically.
 
 ---
 
-## UI Layout
+## Tech Stack
+
+### Prototype (what's built now)
+
+| Layer | Technology | Why |
+|-------|------------|-----|
+| UI | React 18 + Vite | fast dev, no overhead, HMR makes iteration instant |
+| Styling | Inline CSS | no class name indirection — easier to read and explain |
+| Scoring | Pure JS, client-side | stateless function, runs instantly, no server needed |
+| Data | Hand-written mock JSON | lets us prove the product concept before building infra |
+| Deploy | GitHub | version-controlled, shareable |
+
+No backend. No database. No API keys. Everything runs in the browser. This is intentional — the prototype exists to prove the *idea*, not the infrastructure.
+
+### Production (what we'd build toward)
+
+| Layer | Technology | Why |
+|-------|------------|-----|
+| Signal ingestion | Slack Events API | real-time stream of all channel messages |
+| Signal extraction | LLM (Claude / GPT-4) with structured JSON output | fast, flexible classification without writing rules for every thread pattern |
+| Signal store | PostgreSQL | persist signals, compute recency at query time, store feedback |
+| Scoring service | Node.js or Python microservice | stateless, accepts `{ role, phase }`, returns ranked digest — can serve Slack bot + web + email from same endpoint |
+| Delivery | Slack Bot (DM + `/digest` command) | meets users where they already are |
+| Weight learning | Online learning on click/dismiss/save signals | weights drift toward what actually matters to each person over time |
+| Auth | Slack OAuth | team members authenticate with their existing Slack identity |
+
+The scoring engine doesn't change between prototype and production. The only difference is where the signals come from (hand-written vs LLM-extracted) and where the digest goes (browser vs Slack DM).
+
+---
+
+## Impact & ROI
+
+### The core problem it solves
+
+A hardware team in DVT typically has 10–20 Slack channels active at any time. An engineer who reads everything loses 30–60 minutes a day to noise. An engineer who doesn't read everything misses things that matter. The digest replaces that tradeoff with something better: read one thing in 2 minutes and know exactly what needs your attention.
+
+### What the team gets
+
+**Faster response on blockers.** Blockers that stay open because the right person never saw them are one of the biggest sources of schedule slip in hardware. The digest surfaces them directly to the person who can unblock them, with context.
+
+**Earlier visibility into risk.** Supply chain risks, interface changes, and dependency conflicts are often visible in Slack days before they become formal program risks. The digest catches them while there's still time to act.
+
+**Less meeting overhead.** A lot of stand-ups and syncs exist to redistribute information that got buried in Slack. If everyone already knows what matters, those meetings get shorter or go away.
+
+**Cross-functional alignment without overhead.** The EM and PM see everything that crosses team boundaries. Individual contributors see only what's in their domain. Nobody gets buried in irrelevant noise, and nobody misses something that affects their work.
+
+### Why it gets more valuable over time
+
+The scoring model is initialized with expert heuristics, but it learns. Every time a user dismisses an item, saves it, clicks through to the thread, or rates it not relevant — that's a signal. Over time the weights drift toward what actually matters to each specific person on the team, not just their role archetype. The system gets more accurate as it's used.
+
+### Rough ROI framing
+
+If the tool saves each engineer 20 minutes per day of Slack triage, and a team has 10 engineers at an average fully-loaded cost of $200/hour:
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  EverCurrent / Daily Digest    [Role ▾]   [Prototype EVT DVT PVT]  │
-├─────────────────┬────────────────────────────────────────────┤
-│  SLACK THREADS  │  [Role] · [Phase]           2 critical     │
-│                 │  ─────────────────────────────────────     │
-│  #supply-chain  │  CRITICAL · 2                              │
-│  Sarah Kim …    │  ┌─────────────────────────────────────┐  │
-│  James Wu …     │  │ • U7 Rail: 0V at TP23 — 18hrs open  │  │
-│                 │  │   Blocker · #evb-bring-up · 18h ago  │  │
-│  #evb-bring-up  │  └─────────────────────────────────────┘  │
-│  ⚠ 18h no reply │                                            │
-│  Alex Chen …    │  HIGH · 1                                  │
-│  Priya Sharma … │  ┌─────────────────────────────────────┐  │
-│                 │  │ • Murata Cap: 14-week lead time      │  │
-│  #dvt-testing   │  │   Risk · #supply-chain · 20h ago     │  │
-│  Raj Patel …    │  └─────────────────────────────────────┘  │
-└─────────────────┴────────────────────────────────────────────┘
+10 engineers × 20 min/day × $200/hr = $667/day saved
+= ~$167,000/year in recovered engineering time
 ```
 
-Click any digest card → see why it matters to you, the domino chain downstream, and the full score breakdown.
-
----
-
-## Production Architecture (Beyond the Prototype)
-
-In production, the signal extraction layer (currently hand-written mock data) would be replaced with:
-
-1. **Slack Events API** — bot subscribes to message events across all channels
-2. **LLM classification** — each thread is passed to a language model with a structured prompt; output is JSON: `{ type, title, summary, subsystem, owningTeam, downstreamTeams, urgencyMultiplier, actors }`
-3. **Signal store** — lightweight database (Postgres) persists signals; recency computed at query time
-4. **Scoring service** — stateless function, accepts `{ role, phase }`, returns ranked digest; callable from Slack bot, email, or web
-5. **Delivery** — Slack DM at 8am, or on-demand via `/digest` slash command
-6. **Feedback loop** — users can mark items "not relevant"; votes update role weights over time (online learning on the personalization model)
+That's just the time savings. The harder-to-quantify value is schedule risk reduction — a single blocker that gets surfaced one day earlier in DVT can easily be worth more than the entire year's tool cost.
 
 ---
 
@@ -212,25 +245,43 @@ In production, the signal extraction layer (currently hand-written mock data) wo
 
 **"How are the weights chosen?"**
 
-Right now they're explicit heuristics — domain-informed defaults that encode what each role structurally cares about. I chose this approach on purpose because heuristics are interpretable and let you validate product behavior quickly before you have real usage data. You can look at the table and immediately sanity-check whether supply chain should weight risk higher than an EE. You can't do that with a learned model.
+They're explicit heuristics right now — domain-informed defaults that encode what each role structurally cares about. I chose that on purpose because heuristics are interpretable. You can look at the table and immediately sanity-check whether supply chain should weight risk higher than an EE. You can't do that with a learned model.
 
-In production, I'd keep the heuristics as initialization, then refine using behavioral feedback: which items get clicked, dismissed, or saved, and explicit relevance ratings users can give. That turns it into an online learning problem where the weights drift toward what actually matters to each person. But you don't start there — you'd have no signal to learn from.
+In production I'd keep the heuristics as initialization and refine using behavioral feedback — what people click, dismiss, save, and rate. That turns it into an online learning problem where weights drift toward what actually matters to each specific person. But you don't start there. You'd have nothing to learn from.
 
-**"How reliable is the signal extraction?"**
+**"How reliable is signal extraction?"**
 
-The prototype uses hand-written signals, so extraction is perfect by construction. In production with an LLM doing the classification, the key is keeping failure modes graceful. I'd constrain the output to a strict JSON schema, require a confidence score alongside each classification, and degrade on uncertainty rather than overclaim. A low-confidence signal can still appear in the digest — but ranked lower and labeled clearly. Users can correct it, and corrections become training signal.
+In the prototype, signals are hand-written so extraction is perfect. In production with an LLM doing the classification, the key is graceful degradation. I'd constrain the output to a strict JSON schema, require a confidence score with every classification, and rank low-confidence signals lower rather than hiding them. Users can correct misclassifications — those corrections become training data.
 
-"I'd rather degrade gracefully than overstate certainty" is the design principle. An LLM that confidently misclassifies a thread is worse than one that says "I'm not sure, here it is at LOW priority."
+Design principle: I'd rather degrade gracefully than overstate certainty. An LLM that confidently misclassifies is worse than one that says "not sure, here it is at LOW."
 
 **"What makes this more than summarization?"**
 
-Summarization tells you what happened. This system tries to tell you what matters to *you* right now, based on your role, your ownership of specific subsystems, who's downstream of you, and where the project is. The same thread produces different output for different people — different ranking, different explanation, different priority label. That's not summarization, that's relevance scoring with personalized framing.
+Summarization tells you what happened. This tells you what matters to *you* right now — based on your role, what you own, who's downstream of you, and where the project is. Same thread, completely different output per person. That's not summarization. That's relevance routing.
 
-The cleanest way to say it: summarization reduces content, this system routes it.
+**"Why a web UI and not Slack-native?"**
 
-**"Why a web UI instead of a Slack-native experience?"**
+In production it would be Slack — daily DM at 8am and a `/digest` slash command. The web UI exists for the prototype because it makes the ranking logic easy to inspect. You can click a card, see the score breakdown, and switch roles to see how the same signal looks to a different person. That's hard to do in a Slack message. The scoring service underneath is identical either way.
 
-The source is Slack, so the natural delivery surface is Slack — and in production that's exactly where I'd put it: a daily DM at 8am and a `/digest` slash command for on-demand. I used a web UI for the prototype because it makes the ranking logic and the explanation layer easy to inspect. You can click a card, see why it ranked where it did, open the score breakdown, and compare how the same signal looks for different roles. That's hard to do inside a Slack message. The underlying scoring service is the same either way — the delivery layer is just a skin on top.
+---
+
+## Live Demo Walkthrough
+
+*(Use this during a live demo — follow this order)*
+
+**1. Start on the left panel.** Point out 5 Slack threads. "This is what the team's Slack looks like. Raw, unfiltered, every role mixed together."
+
+**2. Switch to Electrical Engineer, DVT.** "Here's what the tool surfaces for the EE in DVT. Two criticals. Both are things they can directly act on — the U7 power rail they own, and the alternate part they were tagged to approve."
+
+**3. Click the U7 blocker card.** "Expand it. Three things: why it matters specifically to an EE, the domino chain showing how it cascades to firmware then to the program timeline, and the score breakdown showing exactly why it ranked first."
+
+**4. Switch role to Product Manager, keep DVT.** "Same phase, different person. Watch the digest completely change. The PM doesn't need to know about R112 — they need to know the April 15 exit date is at risk. That's what surfaces."
+
+**5. Switch phase to Prototype, keep PM.** "Now move back in time. The Murata supplier risk drops. Nobody's sweating the PO cadence in prototype. The open decision about chassis geometry rises instead. Same signals, totally different priorities."
+
+**6. Switch to PVT.** "Now move forward. Everything tightens. Supplier risk is now critical — in PVT a late part can delay launch. The open question from the EM that was medium in DVT is now critical."
+
+**7. Close with the score breakdown.** "Every ranking is explainable. It's not a black box. You can see exactly what went into the number."
 
 ---
 
@@ -245,6 +296,20 @@ Open [http://localhost:5173](http://localhost:5173). Pick a role and phase. The 
 
 ---
 
-## Stack
+## File Structure
 
-React 18 + Vite. No backend, no database. All scoring runs client-side on mock data representing a real DVT-phase program.
+```
+src/
+  lib/
+    scorer.js      ← the scoring formula — this is the core of the system
+    generator.js   ← takes all signals, scores them, returns top 5
+  data/
+    mockData.js    ← 5 Slack threads + 6 extracted signals (the "database")
+  components/
+    Header.jsx     ← role picker + phase switcher
+    ThreadPanel.jsx ← left panel: raw Slack threads
+    DigestPanel.jsx ← right panel: ranked digest with grouping
+    DigestCard.jsx  ← individual signal card (collapsed + expanded states)
+    ImpactChain.jsx ← the domino chain visualization
+  App.jsx          ← wires everything together, re-scores on role/phase change
+```
