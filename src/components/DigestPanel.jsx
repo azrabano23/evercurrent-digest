@@ -1,6 +1,5 @@
 import DigestCard from './DigestCard.jsx'
 
-// a little hint at the top explaining how the phase changes what you see
 const PHASE_NOTE = {
   Prototype: 'Decisions and open questions weighted highest · supply chain noise suppressed',
   EVT:       'Blockers and dependencies amplified · test failures surface first',
@@ -8,11 +7,15 @@ const PHASE_NOTE = {
   PVT:       'All open questions critical · any proposed change triggers priority escalation',
 }
 
-// we always show critical stuff first
 const TIERS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
-const TIER_LABELS = { CRITICAL: 'Critical', HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }
-const TIER_COLORS = { CRITICAL: '#f87171', HIGH: '#fb923c', MEDIUM: '#fbbf24', LOW: '#4ade80' }
+const TIER_META = {
+  CRITICAL: { label: 'Critical', color: '#f87171', glow: 'rgba(248,113,113,0.15)' },
+  HIGH:     { label: 'High',     color: '#fb923c', glow: 'rgba(251,146,60,0.12)'  },
+  MEDIUM:   { label: 'Medium',   color: '#fbbf24', glow: 'rgba(251,191,36,0.10)'  },
+  LOW:      { label: 'Low',      color: '#4ade80', glow: 'rgba(74,222,128,0.08)'  },
+}
+
 const ROLE_COLORS = {
   'Electrical Engineer':  '#60a5fa',
   'Mechanical Engineer':  '#fb923c',
@@ -21,93 +24,112 @@ const ROLE_COLORS = {
   'Product Manager':      '#f472b6',
 }
 
-// the main right panel — your personalized list of what to pay attention to today
+// the right panel — personalized digest, ranked by what matters to you right now
 export default function DigestPanel({ digest, role, phase }) {
-  const rc   = ROLE_COLORS[role] ?? '#60a5fa'
-  const note = PHASE_NOTE[phase] ?? ''
-
-  // count how many are critical so we can show a red badge
+  const rc      = ROLE_COLORS[role] ?? '#60a5fa'
+  const note    = PHASE_NOTE[phase] ?? ''
   const criticals = digest.filter(d => d.priority === 'CRITICAL').length
 
-  // split the digest into groups by priority level
-  // filter out any tiers with nothing in them so we don't show empty sections
+  // group by tier, skip empty ones
   const groups = TIERS
     .map(p => ({ tier: p, items: digest.filter(d => d.priority === p) }))
     .filter(g => g.items.length > 0)
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0a0b10' }}>
 
-      {/* who's reading and what phase — locked at the top */}
+      {/* panel header */}
       <div style={{
-        padding: '14px 24px 12px',
-        background: '#13151c',
-        borderBottom: '1px solid #1f2230',
+        padding: '14px 24px 13px',
+        background: 'linear-gradient(180deg, #0f1117, #0a0b10)',
+        borderBottom: '1px solid #1c2030',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+
+          {/* role indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-              width: '7px', height: '7px', borderRadius: '50%',
-              background: rc, boxShadow: `0 0 8px ${rc}70`,
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: rc,
+              boxShadow: `0 0 8px ${rc}, 0 0 20px ${rc}50`,
             }} />
-            <h1 style={{ fontSize: '14px', fontWeight: 700, color: '#e8eaf0', letterSpacing: '-0.3px' }}>
+            <h1 style={{ fontSize: '14px', fontWeight: 700, color: '#eceef5', letterSpacing: '-0.4px' }}>
               {role}
             </h1>
           </div>
-          <span style={{ color: '#1f2230' }}>·</span>
-          <span style={{ fontSize: '12px', color: '#50535e', fontFamily: 'ui-monospace, monospace', fontWeight: 500 }}>
+
+          <span style={{ color: '#1c2030', fontSize: '16px' }}>·</span>
+          <span style={{ fontSize: '12px', color: '#4e5264', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
             {phase}
           </span>
 
-          {/* red badge — only shows up if something is critical */}
+          {/* red badge if criticals exist */}
           {criticals > 0 && (
-            <span style={{
-              fontSize: '11px', fontWeight: 600, color: '#f87171',
-              background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.22)',
-              borderRadius: '4px', padding: '1px 8px',
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontSize: '11px', fontWeight: 700, color: '#f87171',
+              background: 'rgba(248,113,113,0.08)',
+              border: '1px solid rgba(248,113,113,0.2)',
+              borderRadius: '6px', padding: '2px 9px',
             }}>
+              <div style={{
+                width: '5px', height: '5px', borderRadius: '50%',
+                background: '#f87171', boxShadow: '0 0 6px #f87171',
+              }} />
               {criticals} critical
-            </span>
+            </div>
           )}
 
-          <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#2e3040' }}>
+          <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#2a2e40' }}>
             {digest.length} signals · ranked by relevance
           </span>
         </div>
-        <p style={{ fontSize: '11px', color: '#50535e', paddingLeft: '14px' }}>{note}</p>
+
+        {/* phase note */}
+        <p style={{
+          fontSize: '11px', color: '#2a2e40',
+          paddingLeft: '16px',
+          borderLeft: '2px solid #1c2030',
+        }}>
+          {note}
+        </p>
       </div>
 
-      {/* the actual list — grouped by priority, scrollable */}
+      {/* digest cards, grouped and scrollable */}
       <div style={{
         overflowY: 'auto', flex: 1,
-        padding: '20px 24px',
+        padding: '22px 24px 32px',
         display: 'flex', flexDirection: 'column', gap: '28px',
       }}>
-        {groups.map(({ tier, items }) => (
-          <div key={tier}>
-            {/* section header for each priority level */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div style={{
-                width: '6px', height: '6px', borderRadius: '50%',
-                background: TIER_COLORS[tier], boxShadow: `0 0 7px ${TIER_COLORS[tier]}80`,
-              }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: TIER_COLORS[tier], letterSpacing: '0.1px' }}>
-                {TIER_LABELS[tier]}
-              </span>
-              <span style={{ fontSize: '11px', color: '#2e3040' }}>· {items.length}</span>
-              <div style={{ flex: 1, height: '1px', background: '#1f2230', marginLeft: '4px' }} />
-            </div>
+        {groups.map(({ tier, items }) => {
+          const tm = TIER_META[tier]
+          return (
+            <div key={tier}>
+              {/* section header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: tm.color,
+                  boxShadow: `0 0 8px ${tm.color}, 0 0 16px ${tm.glow}`,
+                }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: tm.color, letterSpacing: '0.2px' }}>
+                  {tm.label}
+                </span>
+                <span style={{ fontSize: '11px', color: '#2a2e40' }}>· {items.length}</span>
+                <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, #1c2030, transparent)', marginLeft: '4px' }} />
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {items.map(item => <DigestCard key={item.id} item={item} />)}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {items.map(item => <DigestCard key={item.id} item={item} />)}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {digest.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#50535e', fontSize: '13px' }}>
-            No signals matched for this role and phase.
+          <div style={{ textAlign: 'center', padding: '80px 0', color: '#2a2e40', fontSize: '13px' }}>
+            No signals for this role and phase.
           </div>
         )}
       </div>

@@ -22,6 +22,63 @@ Think of it like a news feed that knows you're an electrical engineer in DVT, no
 
 ---
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EVERCURRENT DIGEST — DATA FLOW                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  INPUTS                    PROCESSING                        OUTPUT
+  ──────                    ──────────                        ──────
+
+  Slack Channels            Signal Extraction                 Personalized Digest
+  ┌─────────────┐           ┌────────────────────────┐        ┌─────────────────┐
+  │ #supply-    │ ────────▶ │ Classify thread into   │        │ CRITICAL        │
+  │  chain      │           │ typed signal:           │        │ ┌─────────────┐ │
+  │             │           │  blocker / risk /       │        │ │ U7 Rail     │ │
+  │ #evb-bring- │ ────────▶ │  decision /             │        │ │ 0V at TP23  │ │
+  │  up         │           │  open_question /        │        │ └─────────────┘ │
+  │             │           │  milestone_update /     │        │                 │
+  │ #dvt-       │ ────────▶ │  dependency             │        │ HIGH            │
+  │  testing    │           │                         │        │ ┌─────────────┐ │
+  │             │           │ Tag each signal with:   │        │ │ Murata Cap  │ │
+  │ #program    │ ────────▶ │  subsystem, owning team,│        │ │ 14-wk delay │ │
+  │             │           │  downstream teams,      │        │ └─────────────┘ │
+  │ #firmware-  │ ────────▶ │  actors, hoursOld       │        └─────────────────┘
+  │  integration│           └────────────┬───────────┘               ▲
+  └─────────────┘                        │                            │
+                                         ▼                            │
+                             ┌───────────────────────┐               │
+                             │     Scoring Engine     │ ──────────────┘
+                             │                        │
+  PERSONALIZATION             │  score =               │
+  LAYER                      │   role_weight          │
+  ┌─────────────┐            │   × phase_weight       │
+  │ Role        │ ─────────▶ │   × recency            │
+  │ (who reads) │            │   × urgency            │
+  └─────────────┘            │   × ownership_boost    │
+  ┌─────────────┐            │   × cf_reach           │
+  │ Phase       │ ─────────▶ │                        │
+  │ (where proj │            │  → sort by score       │
+  │  is now)    │            │  → top 5               │
+  └─────────────┘            │  → attach role-        │
+                             │    specific explanation │
+                             └───────────────────────┘
+
+  ROLE WEIGHTS (0–1)          PHASE MULTIPLIERS (0.5–1.5)
+  ─────────────────           ────────────────────────────
+  EE    → blockers,           Prototype → decisions high,
+          dependencies               risk low
+  PM    → milestones,         PVT      → everything high,
+          risk                       no tolerance for
+  SC    → risk,                      open items
+          open questions
+  EM    → everything high
+```
+
+---
+
 ## How It Works
 
 ### Step 1 — Read the raw Slack threads
