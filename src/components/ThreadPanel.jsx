@@ -1,5 +1,8 @@
 import { SLACK_THREADS } from '../data/mockData.js'
 
+// this is the left panel — it shows the raw slack threads exactly as they happened
+// the idea is: digest on the right tells you what matters, threads on the left let you read the full context
+
 export default function ThreadPanel() {
   return (
     <div style={{
@@ -11,7 +14,6 @@ export default function ThreadPanel() {
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      {/* Header */}
       <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #1f2230', flexShrink: 0 }}>
         <p style={{ fontSize: '11px', fontWeight: 600, color: '#50535e', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
           Slack Threads
@@ -19,25 +21,28 @@ export default function ThreadPanel() {
         <p style={{ fontSize: '11px', color: '#2e3040', marginTop: '2px' }}>{SLACK_THREADS.length} active threads</p>
       </div>
 
+      {/* scrollable thread list */}
       <div style={{ overflowY: 'auto', flex: 1 }}>
-        {SLACK_THREADS.map((thread, idx) => (
-          <div key={thread.id} style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid #181b24',
-          }}>
-            {/* Channel */}
+        {SLACK_THREADS.map((thread) => (
+          <div key={thread.id} style={{ padding: '12px 16px', borderBottom: '1px solid #181b24' }}>
+
+            {/* channel name with its color dot */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-              <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: thread.channelColor, opacity: 0.75 }} />
+              <div style={{
+                width: '5px', height: '5px', borderRadius: '50%',
+                background: thread.channelColor, opacity: 0.75,
+              }} />
               <span style={{ fontSize: '10px', fontWeight: 600, color: '#50535e', fontFamily: 'ui-monospace, monospace', letterSpacing: '0.2px' }}>
                 {thread.channel}
               </span>
               <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#2e3040' }}>{thread.messages.length}↩</span>
             </div>
 
-            {/* Messages */}
+            {/* messages — truncated so they don't take over the panel */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
               {thread.messages.map(msg => (
                 <div key={msg.id} style={{ display: 'flex', gap: '8px' }}>
+                  {/* avatar: initials in a colored box */}
                   <div style={{
                     width: '22px', height: '22px', borderRadius: '5px', flexShrink: 0,
                     background: `${msg.avatarColor}18`,
@@ -46,11 +51,13 @@ export default function ThreadPanel() {
                     fontSize: '8px', fontWeight: 700, color: msg.avatarColor,
                     marginTop: '1px',
                   }}>{msg.initials}</div>
+
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: '5px', alignItems: 'baseline', marginBottom: '1px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#9496a1' }}>{msg.author}</span>
                       <span style={{ fontSize: '9px', color: '#2e3040' }}>{msg.timestamp}</span>
                     </div>
+                    {/* cut off at 85 chars — this is a preview, not the full thread */}
                     <p style={{ fontSize: '11px', color: '#3a3d4d', lineHeight: 1.45 }}>
                       {msg.text.length > 85 ? msg.text.slice(0, 85) + '…' : msg.text}
                     </p>
@@ -59,16 +66,14 @@ export default function ThreadPanel() {
               ))}
             </div>
 
-            {/* Stale warning */}
+            {/* stale warning — appears if the thread has gone cold */}
             {thread.note && (
               <div style={{
-                marginTop: '8px',
-                padding: '4px 8px',
+                marginTop: '8px', padding: '4px 8px',
                 background: 'rgba(251,146,60,0.06)',
                 borderLeft: '2px solid rgba(251,146,60,0.3)',
                 borderRadius: '0 4px 4px 0',
-                fontSize: '10px', color: '#7c3e12',
-                lineHeight: 1.4,
+                fontSize: '10px', color: '#7c3e12', lineHeight: 1.4,
               }}>
                 {thread.note}
               </div>

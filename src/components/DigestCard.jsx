@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ImpactChain from './ImpactChain.jsx'
 import { SIGNAL_META } from '../data/mockData.js'
 
+// colors for each priority level — background, border, and the dot
 const PC = {
   CRITICAL: { color: '#f87171', bg: 'rgba(248,113,113,0.1)',  border: 'rgba(248,113,113,0.22)', dot: '#ef4444' },
   HIGH:     { color: '#fb923c', bg: 'rgba(251,146,60,0.1)',   border: 'rgba(251,146,60,0.22)',  dot: '#f97316' },
@@ -10,8 +11,10 @@ const PC = {
 }
 
 export default function DigestCard({ item }) {
+  // open = card is expanded, showScore = score breakdown is visible
   const [open, setOpen]           = useState(false)
   const [showScore, setShowScore] = useState(false)
+
   const meta = SIGNAL_META[item.type] ?? { label: item.type, color: '#9496a1' }
   const pc   = PC[item.priority]   ?? PC.LOW
   const bd   = item.breakdown
@@ -26,14 +29,14 @@ export default function DigestCard({ item }) {
       boxShadow: open ? '0 4px 24px rgba(0,0,0,0.25)' : 'none',
     }}>
 
-      {/* Collapsed row */}
+      {/* collapsed view — click to expand */}
       <div
         onClick={() => setOpen(v => !v)}
         style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px' }}
         onMouseEnter={e => { if (!open) e.currentTarget.parentElement.style.background = '#161920' }}
         onMouseLeave={e => { if (!open) e.currentTarget.parentElement.style.background = '#13151c' }}
       >
-        {/* Priority dot */}
+        {/* priority dot — color tells you at a glance how urgent this is */}
         <div style={{ paddingTop: '5px', flexShrink: 0 }}>
           <div style={{
             width: '7px', height: '7px', borderRadius: '50%',
@@ -41,7 +44,7 @@ export default function DigestCard({ item }) {
           }} />
         </div>
 
-        {/* Text block */}
+        {/* title, summary, and meta row */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
             fontSize: '13px', fontWeight: 600,
@@ -54,7 +57,7 @@ export default function DigestCard({ item }) {
             {item.summary}
           </p>
 
-          {/* Meta row */}
+          {/* signal type tag, source channel, age, and who's involved */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '9px', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: '10px', fontWeight: 500, color: meta.color,
@@ -70,6 +73,7 @@ export default function DigestCard({ item }) {
             <Dot />
             <AgeTag hours={item.hoursOld} />
 
+            {/* avatar initials for people involved in the thread */}
             {item.actorInitials?.length > 0 && (
               <div style={{ marginLeft: 'auto', display: 'flex', gap: '3px' }}>
                 {item.actorInitials.map(([init, color]) => (
@@ -85,7 +89,7 @@ export default function DigestCard({ item }) {
           </div>
         </div>
 
-        {/* Right: priority pill + score + chevron */}
+        {/* priority label + raw score + expand arrow */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0, paddingTop: '1px' }}>
           <span style={{
             fontSize: '10px', fontWeight: 700,
@@ -95,6 +99,7 @@ export default function DigestCard({ item }) {
             {item.priority}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* raw score — smaller number = less relevant */}
             <span style={{ fontSize: '10px', color: '#2e3040', fontFamily: 'ui-monospace, monospace' }}>
               {item.score.toFixed(2)}
             </span>
@@ -106,12 +111,12 @@ export default function DigestCard({ item }) {
         </div>
       </div>
 
-      {/* Expanded detail */}
+      {/* expanded detail — why it matters + impact chain + score breakdown */}
       {open && (
         <div style={{ borderTop: '1px solid #1f2230' }}>
           <div style={{ padding: '18px 18px 18px 36px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* Why it matters */}
+            {/* role-specific explanation — different for every role */}
             <div>
               <SectionLabel>Why this matters to you</SectionLabel>
               <p style={{
@@ -122,10 +127,10 @@ export default function DigestCard({ item }) {
               </p>
             </div>
 
-            {/* Impact chain */}
+            {/* how this signal cascades through the program */}
             <ImpactChain chain={item.impactChain} />
 
-            {/* Score breakdown */}
+            {/* score breakdown — shows exactly what went into the number */}
             <div>
               <button
                 onClick={() => setShowScore(v => !v)}
@@ -144,6 +149,7 @@ export default function DigestCard({ item }) {
 
               {showScore && (
                 <div style={{ marginTop: '12px' }}>
+                  {/* each factor that went into the score, side by side */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px', marginBottom: '10px' }}>
                     {[
                       ['Role Wt',  bd.roleWeight ],
@@ -162,6 +168,7 @@ export default function DigestCard({ item }) {
                       </div>
                     ))}
                   </div>
+                  {/* the full formula written out so you can see the math */}
                   <p style={{ fontSize: '10px', color: '#2e3040', fontFamily: 'ui-monospace, monospace' }}>
                     {bd.roleWeight} × {bd.phaseWeight} × {bd.recency} × {bd.urgency} × {bd.depImpact} × {bd.cfReach}
                     {' = '}<span style={{ color: pc.dot, fontWeight: 700 }}>{item.score.toFixed(3)}</span>
@@ -176,6 +183,8 @@ export default function DigestCard({ item }) {
   )
 }
 
+// small helpers below — not worth their own files
+
 function SectionLabel({ children }) {
   return (
     <p style={{ fontSize: '10px', fontWeight: 700, color: '#50535e', textTransform: 'uppercase', letterSpacing: '0.7px' }}>
@@ -184,13 +193,25 @@ function SectionLabel({ children }) {
   )
 }
 
+// tiny separator dot between meta items
 function Dot() {
-  return <span style={{ width: '2px', height: '2px', borderRadius: '50%', background: '#2e3040', flexShrink: 0, display: 'inline-block' }} />
+  return (
+    <span style={{
+      width: '2px', height: '2px', borderRadius: '50%',
+      background: '#2e3040', flexShrink: 0, display: 'inline-block',
+    }} />
+  )
 }
 
+// shows how old the signal is — highlights in orange if it's been sitting > 12 hours
 function AgeTag({ hours }) {
   const stale = hours > 12
-  const label = hours < 1 ? 'just now' : hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`
+  const label = hours < 1
+    ? 'just now'
+    : hours < 24
+      ? `${hours}h ago`
+      : `${Math.floor(hours / 24)}d ago`
+
   return (
     <span style={{
       fontSize: '10px',
